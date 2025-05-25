@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マルチメディア掲示板</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .back-to-top {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: #666;
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+            z-index: 1000;
+        }
+        .back-to-top:hover {
+            background-color: #444;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        #postForm {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="url"],
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button[type="submit"]:hover {
+            background-color: #45a049;
+        }
+        #mediaPreviewContainer {
+            margin-top: 15px;
+        }
+        #mediaPreview {
+            max-width: 100%;
+            max-height: 200px;
+            display: block;
+            margin-top: 10px;
+        }
+        video#mediaPreview {
+            max-height: 300px;
+        }
+        .post {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+            word-break: break-word;
+        }
+        .post h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .post-content {
+            margin: 15px 0;
+        }
+        .post-media {
+            margin: 15px 0;
+            max-width: 100%;
+        }
+        .post-media img, .post-media video {
+            max-width: 100%;
+            max-height: 400px;
+            display: block;
+            border-radius: 4px;
+        }
+        .post-link {
+            display: inline-block;
+            margin-top: 10px;
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .post-link:hover {
+            text-decoration: underline;
+        }
+        .timestamp {
+            color: #666;
+            font-size: 0.8em;
+            margin-top: 10px;
+        }
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 3px 8px;
+            cursor: pointer;
+        }
+        .delete-btn:hover {
+            background: #cc0000;
+        }
+        .file-input-label {
+            display: inline-block;
+            background: #e9e9e9;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .file-input-label:hover {
+            background: #ddd;
+        }
+        #fileName {
+            display: inline-block;
+            margin-left: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <a href="https://vodstarka.github.io/-vodstarka-.github.io/main.html" class="back-to-top">もどる</a>
+    <h1>マルチメディア掲示板</h1>
+    
+    <div class="control-buttons" style="text-align: right; margin-bottom: 20px;">
+        <button id="exportBtn" style="background-color: #2196F3; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-right: 10px;">エクスポート</button>
+        <label for="importFile" style="background-color: #FF9800; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; display: inline-block;">
+            インポート
+            <input type="file" id="importFile" accept=".json" style="display: none;">
+        </label>
+    </div>
+    
+    <form id="postForm">
+        <div class="form-group">
+            <label for="name">タイトル:</label>
+            <input type="text" id="name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="message">内容:</label>
+            <textarea id="message" required></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="link">リンクURL (オプション):</label>
+            <input type="url" id="link" placeholder="https://example.com">
+        </div>
+        
+        <div class="form-group">
+            <label>メディア追加 (オプション):</label>
+            <div>
+                <label for="media" class="file-input-label">画像/動画を選択</label>
+                <span id="fileName">未選択</span>
+                <input type="file" id="media" accept="image/*,video/*" style="display: none;">
+            </div>
+            <div id="mediaPreviewContainer">
+                <!-- プレビューがここに表示されます -->
+            </div>
+        </div>
+        
+        <button type="submit">投稿</button>
+    </form>
+    
+    <div id="posts"></div>
+    
+    <script>
+        // ローカルストレージから投稿を読み込む
+        function loadPosts() {
+            const posts = JSON.parse(localStorage.getItem('posts')) || [];
+            const postsContainer = document.getElementById('posts');
+            postsContainer.innerHTML = '';
+            
+            if (posts.length === 0) {
+                postsContainer.innerHTML = '<p>投稿がありません</p>';
+                return;
+            }
+            
+            posts.forEach((post, index) => {
+                const postElement = document.createElement('div');
+                postElement.className = 'post';
+                
+                let contentHTML = `
+                    <button class="delete-btn" data-index="${index}">削除</button>
+                    <h3>${escapeHtml(post.name)}</h3>
+                    <div class="post-content">${formatMessage(post.message)}</div>
+                `;
+                
+                if (post.link) {
+                    contentHTML += `<a href="${escapeHtml(post.link)}" class="post-link" target="_blank">${escapeHtml(post.link)}</a>`;
+                }
+                
+                if (post.mediaData) {
+                    if (post.mediaType.startsWith('image')) {
+                        contentHTML += `<div class="post-media"><img src="${post.mediaData}" alt="投稿画像"></div>`;
+                    } else if (post.mediaType.startsWith('video')) {
+                        contentHTML += `
+                            <div class="post-media">
+                                <video controls>
+                                    <source src="${post.mediaData}" type="${post.mediaType}">
+                                    お使いのブラウザは動画をサポートしていません。
+                                </video>
+                            </div>
+                        `;
+                    }
+                }
+                
+                contentHTML += `<div class="timestamp">${formatDate(post.timestamp)}</div>`;
+                
+                postElement.innerHTML = contentHTML;
+                postsContainer.appendChild(postElement);
+            });
+            
+            // 削除ボタンにイベントリスナーを追加
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    deletePost(parseInt(this.getAttribute('data-index')));
+                });
+            });
+        }
+        
+        // 日付フォーマット
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('ja-JP', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        // メディアプレビュー表示
+        document.getElementById('media').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const fileNameSpan = document.getElementById('fileName');
+            const previewContainer = document.getElementById('mediaPreviewContainer');
+            
+            previewContainer.innerHTML = '';
+            fileNameSpan.textContent = file ? file.name : '未選択';
+            
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const mediaType = file.type;
+                let previewElement;
+                
+                if (mediaType.startsWith('image')) {
+                    previewElement = document.createElement('img');
+                    previewElement.src = event.target.result;
+                } else if (mediaType.startsWith('video')) {
+                    previewElement = document.createElement('video');
+                    previewElement.src = event.target.result;
+                    previewElement.controls = true;
+                }
+                
+                previewElement.id = 'mediaPreview';
+                previewContainer.appendChild(previewElement);
+            };
+            
+            reader.readAsDataURL(file);
+        });
+        
+        // XSS対策のためのHTMLエスケープ関数
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // メッセージ内のURLをリンクに変換
+        function formatMessage(text) {
+            if (!text) return '';
+            // URLをリンクに変換
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            return escapeHtml(text).replace(urlRegex, url => 
+                `<a href="${url}" class="post-link" target="_blank">${url}</a>`
+            ).replace(/\n/g, '<br>');
+        }
+        
+        // 投稿を削除する関数
+        function deletePost(index) {
+            if (confirm('本当にこの投稿を削除しますか？')) {
+                const posts = JSON.parse(localStorage.getItem('posts')) || [];
+                posts.splice(index, 1);
+                localStorage.setItem('posts', JSON.stringify(posts));
+                loadPosts();
+            }
+        }
+        
+        // フォーム送信時の処理
+        document.getElementById('postForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value;
+            const message = document.getElementById('message').value;
+            const link = document.getElementById('link').value;
+            const mediaInput = document.getElementById('media');
+            const mediaFile = mediaInput.files[0];
+            const timestamp = new Date().toISOString();
+            
+            // メディア処理
+            const processMedia = (mediaFile) => {
+                return new Promise((resolve) => {
+                    if (!mediaFile) {
+                        resolve({ mediaData: null, mediaType: null });
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        resolve({
+                            mediaData: event.target.result,
+                            mediaType: mediaFile.type
+                        });
+                    };
+                    reader.readAsDataURL(mediaFile);
+                });
+            };
+            
+            processMedia(mediaFile).then(({ mediaData, mediaType }) => {
+                // ローカルストレージに保存
+                const posts = JSON.parse(localStorage.getItem('posts')) || [];
+                posts.unshift({ 
+                    name, 
+                    message, 
+                    link: link || null, 
+                    mediaData,
+                    mediaType,
+                    timestamp 
+                });
+                localStorage.setItem('posts', JSON.stringify(posts));
+                
+                // フォームをリセット
+                this.reset();
+                document.getElementById('mediaPreviewContainer').innerHTML = '';
+                document.getElementById('fileName').textContent = '未選択';
+                mediaInput.value = '';
+                
+                // 投稿を再読み込み
+                loadPosts();
+            });
+        });
+        
+        // エクスポート機能
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            const posts = JSON.parse(localStorage.getItem('posts')) || [];
+            const blob = new Blob([JSON.stringify(posts, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `bbs_export_${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // インポート機能
+        document.getElementById('importFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const importedPosts = JSON.parse(event.target.result);
+                    if (!Array.isArray(importedPosts)) {
+                        throw new Error('無効なデータ形式です');
+                    }
+
+                    // データの検証
+                    const validPosts = importedPosts.filter(post => {
+                        return post.name && post.message && post.timestamp;
+                    });
+
+                    if (validPosts.length === 0) {
+                        throw new Error('有効な投稿データが見つかりません');
+                    }
+
+                    if (confirm(`${validPosts.length}件の投稿をインポートします。既存のデータは上書きされます。よろしいですか？`)) {
+                        localStorage.setItem('posts', JSON.stringify(validPosts));
+                        loadPosts();
+                        alert('インポートが完了しました');
+                    }
+                } catch (error) {
+                    alert('インポートに失敗しました: ' + error.message);
+                }
+                e.target.value = ''; // ファイル選択をリセット
+            };
+            reader.readAsText(file);
+        });
+        
+        // 初期読み込み
+        loadPosts();
+    </script>
+</body>
+</html>

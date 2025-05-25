@@ -399,9 +399,26 @@
             font-size: 11px;
             padding: 1px 6px;
         }
+        .back-to-top {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            text-decoration: none;
+            display: block;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .back-to-top:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
+    <a href="https://vodstarka.github.io/-vodstarka-.github.io/main.html" class="back-to-top">もどる</a>
     <div class="container">
         <h1>AIで作った単語帳アプリ</h1>
         
@@ -1178,7 +1195,7 @@
             editCardSetBtn.addEventListener('click', showEditCardSetModal);
             deleteCardSetBtn.addEventListener('click', deleteCurrentCardSet);
             cancelCardSetModalBtn.addEventListener('click', hideCardSetModal);
-            saveCardSetBtn.addEventListener('click', saveCardSet);
+            saveCardSetBtn.addEventListener('click', saveCard);
             toggleDescriptionBtn.addEventListener('click', toggleDescription);
             exportAllBtn.addEventListener('click', exportAllCardSets);
             importAllBtn.addEventListener('click', () => importAllFile.click());
