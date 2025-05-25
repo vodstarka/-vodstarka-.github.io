@@ -1748,6 +1748,7 @@
         // ローカルストレージに保存
         function saveToLocalStorage() {
             localStorage.setItem('cardSets', JSON.stringify(cardSets));
+            localStorage.setItem('groups', JSON.stringify(groups));
         }
 
         // ローカルストレージから読み込み
@@ -1793,6 +1794,64 @@
                     }
                 });
             }
+        }
+
+        // 全ての単語帳をインポート
+        function handleImportAllCardSets(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    const importedSets = importedData.cardSets;
+                    const importedGroups = importedData.groups || [];
+                    
+                    if (!Array.isArray(importedSets)) {
+                        alert('無効な単語帳ファイルです');
+                        return;
+                    }
+                    
+                    // 重複チェックと上書き確認
+                    const duplicates = importedSets.filter(set => 
+                        cardSets.some(existingSet => existingSet.name === set.name)
+                    );
+                    
+                    if (duplicates.length > 0) {
+                        if (!confirm(`${duplicates.length}個の単語帳セットが既に存在します。上書きしますか？`)) {
+                            return;
+                        }
+                    }
+                    
+                    // 既存のセットを上書きまたは新規追加
+                    importedSets.forEach(importedSet => {
+                        const existingIndex = cardSets.findIndex(set => set.name === importedSet.name);
+                        if (existingIndex >= 0) {
+                            cardSets[existingIndex] = importedSet;
+                        } else {
+                            cardSets.push(importedSet);
+                        }
+                    });
+                    
+                    // グループ情報の追加
+                    importedGroups.forEach(group => {
+                        if (!groups.some(g => g.id === group.id)) {
+                            groups.push(group);
+                        }
+                    });
+                    
+                    saveToLocalStorage();
+                    renderCardSetList();
+                    updateGroupSelectors();
+                    alert(`${importedSets.length}個の単語帳セットをインポートしました`);
+                    
+                } catch (error) {
+                    alert('ファイルの読み込みに失敗しました: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
         }
 
         // ページ読み込み時の自動インポート確認
