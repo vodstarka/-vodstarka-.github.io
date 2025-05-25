@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>マルチメディア単語帳アプリ</title>
+    <title>AIで作った単語帳アプリ</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -283,6 +283,9 @@
         .tab-content.active {
             display: block;
         }
+        .group-container {
+            margin-bottom: 10px;
+        }
         .group-header {
             background-color: #f8f8f8;
             padding: 10px;
@@ -321,11 +324,86 @@
             font-size: 0.9em;
             margin-left: 10px;
         }
+        .edit-group, .add-subgroup {
+            padding: 2px 8px;
+            font-size: 12px;
+            margin-left: 5px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .edit-group:hover, .add-subgroup:hover {
+            background-color: #0b7dda;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .modal-buttons button {
+            margin: 0 5px;
+        }
+        .subgroup-header {
+            background-color: #f0f0f0;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            margin-left: 20px;
+        }
+        .subgroup-header:hover {
+            background-color: #e8e8e8;
+        }
+        .subgroup-content {
+            margin-left: 40px;
+            display: none;
+        }
+        .subgroup-content.expanded {
+            display: block;
+        }
+        .subgroup-header .group-toggle {
+            width: 16px;
+            height: 16px;
+            font-size: 14px;
+        }
+        .subgroup-header .group-count {
+            font-size: 0.85em;
+        }
+        .subgroup-header .edit-group,
+        .subgroup-header .add-subgroup {
+            font-size: 11px;
+            padding: 1px 6px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>マルチメディア単語帳アプリ</h1>
+        <h1>AIで作った単語帳アプリ</h1>
         
         <div class="controls" style="margin-bottom: 20px;">
             <button id="exportAll" class="secondary">全ての単語帳をエクスポート</button>
@@ -488,6 +566,7 @@
     <script>
         // 単語帳データ
         let cardSets = JSON.parse(localStorage.getItem('cardSets')) || [];
+        let groups = JSON.parse(localStorage.getItem('groups')) || [];
         let currentCardSetIndex = -1;
         let currentCardIndex = 0;
         let isFlipped = false;
@@ -498,6 +577,523 @@
         let tempMediaType = null;
         let tempAdditionalText = null;
         let currentGroupFilter = ''; // 現在のグループフィルター
+        let editingGroupId = null; // 編集中のグループID
+
+        // グループの構造
+        class Group {
+            constructor(name, parentId = null) {
+                this.id = Date.now().toString();
+                this.name = name;
+                this.parentId = parentId;
+                this.subGroups = [];
+            }
+        }
+
+        // グループを取得
+        function getGroup(groupId) {
+            return groups.find(g => g.id === groupId);
+        }
+
+        // グループのパスを取得
+        function getGroupPath(groupId) {
+            const path = [];
+            let currentGroup = getGroup(groupId);
+            
+            while (currentGroup) {
+                path.unshift(currentGroup.name);
+                currentGroup = currentGroup.parentId ? getGroup(currentGroup.parentId) : null;
+            }
+            
+            return path.join(' > ');
+        }
+
+        // グループの子グループを取得
+        function getSubGroups(groupId) {
+            return groups.filter(g => g.parentId === groupId);
+        }
+
+        // グループの単語帳を取得
+        function getGroupCardSets(groupId) {
+            return cardSets.filter(set => set.groupId === groupId);
+        }
+
+        // グループを保存
+        function saveGroups() {
+            localStorage.setItem('groups', JSON.stringify(groups));
+        }
+
+        // グループセレクターを更新
+        function updateGroupSelectors() {
+            // グループセレクターの更新
+            const groupOptions = '<option value="">グループなし</option><option value="new">新しいグループを作成</option>';
+            cardSetGroup.innerHTML = groupOptions;
+            
+            // グループを階層的に表示
+            function addGroupOptions(groupId = null, level = 0) {
+                const subGroups = getSubGroups(groupId);
+                subGroups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group.id;
+                    option.textContent = '　'.repeat(level) + group.name;
+                    cardSetGroup.appendChild(option);
+                    addGroupOptions(group.id, level + 1);
+                });
+            }
+            
+            addGroupOptions();
+
+            // グループフィルターの更新
+            const filterOptions = '<option value="">全てのグループ</option>';
+            groupFilter.innerHTML = filterOptions;
+            
+            function addFilterOptions(groupId = null, level = 0) {
+                const subGroups = getSubGroups(groupId);
+                subGroups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group.id;
+                    option.textContent = '　'.repeat(level) + group.name;
+                    groupFilter.appendChild(option);
+                    addFilterOptions(group.id, level + 1);
+                });
+            }
+            
+            addFilterOptions();
+        }
+
+        // 単語帳セットリストを表示
+        function renderCardSetList() {
+            cardSetList.innerHTML = '<h3>単語帳セット一覧</h3>';
+            
+            if (cardSets.length === 0) {
+                cardSetList.innerHTML += '<p>単語帳セットがありません</p>';
+                return;
+            }
+
+            // メイングループを表示
+            const mainGroups = groups.filter(g => !g.parentId);
+            mainGroups.forEach(group => {
+                const groupContainer = document.createElement('div');
+                groupContainer.className = 'group-container';
+                
+                const groupHeader = document.createElement('div');
+                groupHeader.className = 'group-header';
+                groupHeader.innerHTML = `
+                    <div>
+                        <span class="group-toggle">+</span>
+                        ${group.name}
+                        <span class="group-count">(${getGroupCardSets(group.id).length}セット)</span>
+                        <button class="edit-group" data-group-id="${group.id}">編集</button>
+                        <button class="add-subgroup" data-group-id="${group.id}">サブグループ追加</button>
+                    </div>
+                `;
+
+                const groupContent = document.createElement('div');
+                groupContent.className = 'group-content';
+                
+                // グループ内の単語帳を表示
+                const groupCardSets = getGroupCardSets(group.id);
+                groupCardSets.forEach(set => {
+                    const setItem = document.createElement('div');
+                    setItem.className = 'card-set-item';
+                    if (cardSets.indexOf(set) === currentCardSetIndex) {
+                        setItem.classList.add('active');
+                    }
+                    
+                    setItem.innerHTML = `
+                        <span>${set.name} (${set.cards.length}枚) - ${set.description || ''}</span>
+                        <div class="card-set-actions">
+                            <button class="secondary" data-action="edit" data-index="${cardSets.indexOf(set)}">編集</button>
+                            <button class="delete" data-action="delete" data-index="${cardSets.indexOf(set)}">削除</button>
+                        </div>
+                    `;
+                    
+                    setItem.addEventListener('click', (e) => {
+                        if (!e.target.closest('button')) {
+                            loadCardSet(cardSets.indexOf(set));
+                        }
+                    });
+                    
+                    setItem.querySelector('[data-action="edit"]').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        currentCardSetIndex = cardSets.indexOf(set);
+                        showEditCardSetModal();
+                    });
+                    
+                    setItem.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (confirm(`「${set.name}」を削除しますか？この操作は元に戻せません。`)) {
+                            deleteCardSet(cardSets.indexOf(set));
+                        }
+                    });
+                    
+                    groupContent.appendChild(setItem);
+                });
+
+                // サブグループを表示
+                function renderSubGroups(parentId, level = 1) {
+                    const subGroups = groups.filter(g => g.parentId === parentId);
+                    subGroups.forEach(subGroup => {
+                        const subGroupHeader = document.createElement('div');
+                        subGroupHeader.className = 'subgroup-header';
+                        subGroupHeader.style.marginLeft = `${level * 20}px`;
+                        subGroupHeader.innerHTML = `
+                            <div>
+                                <span class="group-toggle">+</span>
+                                ${subGroup.name}
+                                <span class="group-count">(${getGroupCardSets(subGroup.id).length}セット)</span>
+                                <button class="edit-group" data-group-id="${subGroup.id}">編集</button>
+                                <button class="add-subgroup" data-group-id="${subGroup.id}">サブグループ追加</button>
+                            </div>
+                        `;
+
+                        const subGroupContent = document.createElement('div');
+                        subGroupContent.className = 'subgroup-content';
+                        subGroupContent.style.marginLeft = `${(level + 1) * 20}px`;
+                        
+                        // サブグループ内の単語帳を表示
+                        const subGroupSets = getGroupCardSets(subGroup.id);
+                        subGroupSets.forEach(set => {
+                            const setItem = document.createElement('div');
+                            setItem.className = 'card-set-item';
+                            if (cardSets.indexOf(set) === currentCardSetIndex) {
+                                setItem.classList.add('active');
+                            }
+                            
+                            setItem.innerHTML = `
+                                <span>${set.name} (${set.cards.length}枚) - ${set.description || ''}</span>
+                                <div class="card-set-actions">
+                                    <button class="secondary" data-action="edit" data-index="${cardSets.indexOf(set)}">編集</button>
+                                    <button class="delete" data-action="delete" data-index="${cardSets.indexOf(set)}">削除</button>
+                                </div>
+                            `;
+                            
+                            setItem.addEventListener('click', (e) => {
+                                if (!e.target.closest('button')) {
+                                    loadCardSet(cardSets.indexOf(set));
+                                }
+                            });
+                            
+                            setItem.querySelector('[data-action="edit"]').addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                currentCardSetIndex = cardSets.indexOf(set);
+                                showEditCardSetModal();
+                            });
+                            
+                            setItem.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                if (confirm(`「${set.name}」を削除しますか？この操作は元に戻せません。`)) {
+                                    deleteCardSet(cardSets.indexOf(set));
+                                }
+                            });
+                            
+                            subGroupContent.appendChild(setItem);
+                        });
+
+                        // サブグループヘッダーのクリックイベント
+                        subGroupHeader.addEventListener('click', (e) => {
+                            if (e.target.classList.contains('edit-group')) {
+                                e.stopPropagation();
+                                editingGroupId = e.target.dataset.groupId;
+                                showEditGroupModal();
+                                return;
+                            }
+                            
+                            if (e.target.classList.contains('add-subgroup')) {
+                                e.stopPropagation();
+                                showAddGroupModal(e.target.dataset.groupId);
+                                return;
+                            }
+                            
+                            const toggle = subGroupHeader.querySelector('.group-toggle');
+                            const content = subGroupHeader.nextElementSibling;
+                            
+                            if (content.classList.contains('expanded')) {
+                                content.classList.remove('expanded');
+                                toggle.classList.remove('expanded');
+                                toggle.textContent = '+';
+                            } else {
+                                content.classList.add('expanded');
+                                toggle.classList.add('expanded');
+                                toggle.textContent = '×';
+                            }
+                        });
+
+                        groupContent.appendChild(subGroupHeader);
+                        groupContent.appendChild(subGroupContent);
+                        
+                        // 再帰的にサブグループを表示
+                        renderSubGroups(subGroup.id, level + 1);
+                    });
+                }
+
+                renderSubGroups(group.id);
+
+                // グループヘッダーのクリックイベント
+                groupHeader.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('edit-group')) {
+                        e.stopPropagation();
+                        editingGroupId = e.target.dataset.groupId;
+                        showEditGroupModal();
+                        return;
+                    }
+                    
+                    if (e.target.classList.contains('add-subgroup')) {
+                        e.stopPropagation();
+                        showAddGroupModal(e.target.dataset.groupId);
+                        return;
+                    }
+                    
+                    const toggle = groupHeader.querySelector('.group-toggle');
+                    const content = groupHeader.nextElementSibling;
+                    
+                    if (content.classList.contains('expanded')) {
+                        content.classList.remove('expanded');
+                        toggle.classList.remove('expanded');
+                        toggle.textContent = '+';
+                    } else {
+                        content.classList.add('expanded');
+                        toggle.classList.add('expanded');
+                        toggle.textContent = '×';
+                    }
+                });
+
+                groupContainer.appendChild(groupHeader);
+                groupContainer.appendChild(groupContent);
+                cardSetList.appendChild(groupContainer);
+            });
+
+            // 「グループなし」の単語帳を表示
+            const ungroupedSets = cardSets.filter(set => !set.groupId);
+            if (ungroupedSets.length > 0) {
+                const ungroupedContainer = document.createElement('div');
+                ungroupedContainer.className = 'group-container';
+                
+                const ungroupedHeader = document.createElement('div');
+                ungroupedHeader.className = 'group-header';
+                ungroupedHeader.innerHTML = `
+                    <div>
+                        <span class="group-toggle">+</span>
+                        グループなし
+                        <span class="group-count">(${ungroupedSets.length}セット)</span>
+                    </div>
+                `;
+
+                const ungroupedContent = document.createElement('div');
+                ungroupedContent.className = 'group-content';
+                
+                ungroupedSets.forEach(set => {
+                    const setItem = document.createElement('div');
+                    setItem.className = 'card-set-item';
+                    if (cardSets.indexOf(set) === currentCardSetIndex) {
+                        setItem.classList.add('active');
+                    }
+                    
+                    setItem.innerHTML = `
+                        <span>${set.name} (${set.cards.length}枚) - ${set.description || ''}</span>
+                        <div class="card-set-actions">
+                            <button class="secondary" data-action="edit" data-index="${cardSets.indexOf(set)}">編集</button>
+                            <button class="delete" data-action="delete" data-index="${cardSets.indexOf(set)}">削除</button>
+                        </div>
+                    `;
+                    
+                    setItem.addEventListener('click', (e) => {
+                        if (!e.target.closest('button')) {
+                            loadCardSet(cardSets.indexOf(set));
+                        }
+                    });
+                    
+                    setItem.querySelector('[data-action="edit"]').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        currentCardSetIndex = cardSets.indexOf(set);
+                        showEditCardSetModal();
+                    });
+                    
+                    setItem.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (confirm(`「${set.name}」を削除しますか？この操作は元に戻せません。`)) {
+                            deleteCardSet(cardSets.indexOf(set));
+                        }
+                    });
+                    
+                    ungroupedContent.appendChild(setItem);
+                });
+
+                // 「グループなし」ヘッダーのクリックイベント
+                ungroupedHeader.addEventListener('click', () => {
+                    const toggle = ungroupedHeader.querySelector('.group-toggle');
+                    const content = ungroupedHeader.nextElementSibling;
+                    
+                    if (content.classList.contains('expanded')) {
+                        content.classList.remove('expanded');
+                        toggle.classList.remove('expanded');
+                        toggle.textContent = '+';
+                    } else {
+                        content.classList.add('expanded');
+                        toggle.classList.add('expanded');
+                        toggle.textContent = '×';
+                    }
+                });
+
+                ungroupedContainer.appendChild(ungroupedHeader);
+                ungroupedContainer.appendChild(ungroupedContent);
+                cardSetList.appendChild(ungroupedContainer);
+            }
+        }
+
+        // グループ編集モーダルを表示
+        function showEditGroupModal() {
+            const group = getGroup(editingGroupId);
+            if (!group) return;
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>グループを編集</h2>
+                    <div class="form-group">
+                        <label for="editGroupName">グループ名</label>
+                        <input type="text" id="editGroupName" value="${group.name}">
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="deleteGroup" class="delete">グループを削除</button>
+                        <button id="cancelEditGroup">キャンセル</button>
+                        <button id="saveGroup">保存</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // イベントリスナー
+            modal.querySelector('#cancelEditGroup').addEventListener('click', () => {
+                modal.remove();
+            });
+            
+            modal.querySelector('#saveGroup').addEventListener('click', () => {
+                const newName = modal.querySelector('#editGroupName').value.trim();
+                if (!newName) {
+                    alert('グループ名を入力してください');
+                    return;
+                }
+                
+                group.name = newName;
+                saveGroups();
+                modal.remove();
+                renderCardSetList();
+                updateGroupSelectors();
+            });
+            
+            modal.querySelector('#deleteGroup').addEventListener('click', () => {
+                if (confirm('このグループを削除しますか？グループ内の単語帳は「グループなし」に移動されます。')) {
+                    // グループ内の単語帳を「グループなし」に移動
+                    cardSets.forEach(set => {
+                        if (set.groupId === editingGroupId) {
+                            set.groupId = null;
+                        }
+                    });
+                    
+                    // グループを削除
+                    groups = groups.filter(g => g.id !== editingGroupId);
+                    saveGroups();
+                    saveToLocalStorage();
+                    modal.remove();
+                    renderCardSetList();
+                    updateGroupSelectors();
+                }
+            });
+        }
+
+        // サブグループ追加モーダルを表示
+        function showAddGroupModal(parentId) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>サブグループを追加</h2>
+                    <div class="form-group">
+                        <label for="newGroupName">グループ名</label>
+                        <input type="text" id="newGroupName">
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="cancelAddGroup">キャンセル</button>
+                        <button id="saveNewGroup">保存</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // イベントリスナー
+            modal.querySelector('#cancelAddGroup').addEventListener('click', () => {
+                modal.remove();
+            });
+            
+            modal.querySelector('#saveNewGroup').addEventListener('click', () => {
+                const name = modal.querySelector('#newGroupName').value.trim();
+                if (!name) {
+                    alert('グループ名を入力してください');
+                    return;
+                }
+                
+                const newGroup = new Group(name, parentId);
+                groups.push(newGroup);
+                saveGroups();
+                modal.remove();
+                renderCardSetList();
+                updateGroupSelectors();
+            });
+        }
+
+        // グループを変更
+        function handleGroupChange() {
+            const groupId = cardSetGroup.value;
+            if (groupId === 'new') {
+                showAddGroupModal(null);
+            }
+        }
+
+        // 単語帳セットを作成
+        function createCardSet() {
+            const name = cardSetNameInput.value.trim();
+            if (!name) {
+                alert('単語帳セット名を入力してください');
+                return;
+            }
+            
+            const groupId = cardSetGroup.value;
+            
+            const newCardSet = {
+                name,
+                description: '',
+                cards: [],
+                groupId: groupId || null
+            };
+            
+            cardSets.push(newCardSet);
+            saveToLocalStorage();
+            cardSetNameInput.value = '';
+            renderCardSetList();
+            loadCardSet(cardSets.length - 1);
+        }
+
+        // 単語帳セットを保存
+        function saveCardSet() {
+            const name = editCardSetName.value.trim();
+            if (!name) {
+                alert('セット名を入力してください');
+                return;
+            }
+            
+            cardSets[currentCardSetIndex].name = name;
+            cardSets[currentCardSetIndex].description = editCardSetDescription.value.trim() || undefined;
+            cardSets[currentCardSetIndex].groupId = cardSetGroup.value || null;
+            
+            saveToLocalStorage();
+            hideCardSetModal();
+            currentCardSetName.textContent = name;
+            renderCardSetList();
+            updateGroupSelectors();
+        }
 
         // DOM要素
         const cardSetNameInput = document.getElementById('cardSetName');
@@ -616,149 +1212,6 @@
                     content.classList.remove('active');
                 }
             });
-        }
-
-        // 単語帳セットリストを表示
-        function renderCardSetList() {
-            cardSetList.innerHTML = '<h3>単語帳セット一覧</h3>';
-            
-            if (cardSets.length === 0) {
-                cardSetList.innerHTML += '<p>単語帳セットがありません</p>';
-                return;
-            }
-
-            // グループごとに単語帳を分類
-            const groupedSets = {};
-            cardSets.forEach(set => {
-                const group = set.group || 'グループなし';
-                if (!groupedSets[group]) {
-                    groupedSets[group] = [];
-                }
-                groupedSets[group].push(set);
-            });
-
-            // グループごとに表示
-            Object.entries(groupedSets).forEach(([group, sets]) => {
-                const groupHeader = document.createElement('div');
-                groupHeader.className = 'group-header';
-                groupHeader.innerHTML = `
-                    <div>
-                        <span class="group-toggle">+</span>
-                        ${group}
-                        <span class="group-count">(${sets.length}セット)</span>
-                    </div>
-                `;
-
-                const groupContent = document.createElement('div');
-                groupContent.className = 'group-content';
-                
-                sets.forEach((set, index) => {
-                    const setItem = document.createElement('div');
-                    setItem.className = 'card-set-item';
-                    if (cardSets.indexOf(set) === currentCardSetIndex) {
-                        setItem.classList.add('active');
-                    }
-                    
-                    setItem.innerHTML = `
-                        <span>${set.name} (${set.cards.length}枚) - ${set.description || ''}</span>
-                        <div class="card-set-actions">
-                            <button class="secondary" data-action="edit" data-index="${cardSets.indexOf(set)}">編集</button>
-                            <button class="delete" data-action="delete" data-index="${cardSets.indexOf(set)}">削除</button>
-                        </div>
-                    `;
-                    
-                    setItem.addEventListener('click', (e) => {
-                        if (!e.target.closest('button')) {
-                            loadCardSet(cardSets.indexOf(set));
-                        }
-                    });
-                    
-                    // 編集・削除ボタンのイベント
-                    setItem.querySelector('[data-action="edit"]').addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        currentCardSetIndex = cardSets.indexOf(set);
-                        showEditCardSetModal();
-                    });
-                    
-                    setItem.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        if (confirm(`「${set.name}」を削除しますか？この操作は元に戻せません。`)) {
-                            deleteCardSet(cardSets.indexOf(set));
-                        }
-                    });
-                    
-                    groupContent.appendChild(setItem);
-                });
-
-                // グループヘッダーのクリックイベント
-                groupHeader.addEventListener('click', () => {
-                    const toggle = groupHeader.querySelector('.group-toggle');
-                    const content = groupHeader.nextElementSibling;
-                    
-                    if (content.classList.contains('expanded')) {
-                        content.classList.remove('expanded');
-                        toggle.classList.remove('expanded');
-                        toggle.textContent = '+';
-                    } else {
-                        content.classList.add('expanded');
-                        toggle.classList.add('expanded');
-                        toggle.textContent = '×';
-                    }
-                });
-
-                cardSetList.appendChild(groupHeader);
-                cardSetList.appendChild(groupContent);
-            });
-        }
-
-        // グループセレクターを更新
-        function updateGroupSelectors() {
-            const groups = new Set();
-            cardSets.forEach(set => {
-                if (set.group) {
-                    groups.add(set.group);
-                }
-            });
-
-            // グループセレクターの更新
-            const groupOptions = cardSetGroup.innerHTML;
-            cardSetGroup.innerHTML = groupOptions;
-            groups.forEach(group => {
-                const option = document.createElement('option');
-                option.value = group;
-                option.textContent = group;
-                cardSetGroup.appendChild(option);
-            });
-
-            // グループフィルターの更新
-            const filterOptions = groupFilter.innerHTML;
-            groupFilter.innerHTML = filterOptions;
-            groups.forEach(group => {
-                const option = document.createElement('option');
-                option.value = group;
-                option.textContent = group;
-                groupFilter.appendChild(option);
-            });
-        }
-
-        // グループフィルターを変更
-        function handleGroupFilterChange() {
-            currentGroupFilter = groupFilter.value;
-            renderCardSetList();
-            
-            // フィルターされたグループを展開
-            if (currentGroupFilter) {
-                const groupHeaders = document.querySelectorAll('.group-header');
-                groupHeaders.forEach(header => {
-                    if (header.textContent.includes(currentGroupFilter)) {
-                        const toggle = header.querySelector('.group-toggle');
-                        const content = header.nextElementSibling;
-                        content.classList.add('expanded');
-                        toggle.classList.add('expanded');
-                        toggle.textContent = '×';
-                    }
-                });
-            }
         }
 
         // 単語帳セットを読み込む
@@ -1352,13 +1805,23 @@
             e.target.value = ''; // 同じファイルを再度選択できるようにリセット
         }
 
-        // グループを変更
-        function handleGroupChange() {
-            const group = cardSetGroup.value;
-            if (group === 'new') {
-                newGroupName.style.display = 'block';
-            } else {
-                newGroupName.style.display = 'none';
+        // グループフィルターを変更
+        function handleGroupFilterChange() {
+            currentGroupFilter = groupFilter.value;
+            renderCardSetList();
+            
+            // フィルターされたグループを展開
+            if (currentGroupFilter) {
+                const groupHeaders = document.querySelectorAll('.group-header');
+                groupHeaders.forEach(header => {
+                    if (header.textContent.includes(currentGroupFilter)) {
+                        const toggle = header.querySelector('.group-toggle');
+                        const content = header.nextElementSibling;
+                        content.classList.add('expanded');
+                        toggle.classList.add('expanded');
+                        toggle.textContent = '×';
+                    }
+                });
             }
         }
 
