@@ -1,0 +1,1903 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIで作った単語帳アプリ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .card {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            font-size: 18px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            position: relative;
+        }
+        .card:hover {
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .card-content {
+            flex-grow: 1;
+        }
+        .media-container {
+            margin: 10px 0;
+            max-width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .media-preview {
+            max-width: 100%;
+            max-height: 200px;
+            margin-bottom: 10px;
+        }
+        audio, video {
+            width: 100%;
+            max-width: 400px;
+        }
+        .file-icon {
+            font-size: 48px;
+            color: #555;
+        }
+        .card-description {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #ddd;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            min-width: 120px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.delete {
+            background-color: #f44336;
+        }
+        button.delete:hover {
+            background-color: #d32f2f;
+        }
+        button.edit {
+            background-color: #2196F3;
+        }
+        button.edit:hover {
+            background-color: #0b7dda;
+        }
+        button.secondary {
+            background-color: #9e9e9e;
+        }
+        button.secondary:hover {
+            background-color: #757575;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .card-set-list {
+            margin-top: 20px;
+        }
+        .card-set-item {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-set-item:hover {
+            background-color: #f0f0f0;
+        }
+        .card-set-item.active {
+            background-color: #e0e0e0;
+            font-weight: bold;
+        }
+        .card-set-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .group-selector {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-radius: 4px;
+        }
+        .group-selector select {
+            width: 200px;
+            padding: 5px;
+            margin-right: 10px;
+        }
+        .url-button {
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .url-button.disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .progress {
+            text-align: center;
+            margin: 10px 0;
+            color: #666;
+        }
+        .view-toggle {
+            display: flex;
+            justify-content: center;
+            margin: 15px 0;
+        }
+        .view-toggle button {
+            border-radius: 0;
+            margin: 0;
+        }
+        .view-toggle button:first-child {
+            border-top-left-radius: 4px;
+            border-bottom-left-radius: 4px;
+        }
+        .view-toggle button:last-child {
+            border-top-right-radius: 4px;
+            border-bottom-right-radius: 4px;
+        }
+        .view-toggle button.active {
+            background-color: #2E7D32;
+        }
+        .card-list {
+            margin-top: 20px;
+        }
+        .card-list-item {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background-color: white;
+            cursor: pointer;
+        }
+        .card-list-item:hover {
+            background-color: #f9f9f9;
+        }
+        .card-list-item.active {
+            border-color: #4CAF50;
+            background-color: #f0f8f0;
+        }
+        .card-list-item h4 {
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+        .card-list-item p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .card-list-media {
+            max-width: 100px;
+            max-height: 60px;
+            margin-right: 10px;
+            float: left;
+        }
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+        .hidden {
+            display: none;
+        }
+        .card-side-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+        .media-type-indicator {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+        .tab-container {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .tab {
+            padding: 10px 15px;
+            background-color: #e0e0e0;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            margin-right: 5px;
+        }
+        .tab.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .group-container {
+            margin-bottom: 10px;
+        }
+        .group-header {
+            background-color: #f8f8f8;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+        .group-header:hover {
+            background-color: #f0f0f0;
+        }
+        .group-content {
+            margin-left: 20px;
+            display: none;
+        }
+        .group-content.expanded {
+            display: block;
+        }
+        .group-toggle {
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            transition: transform 0.3s;
+        }
+        .group-toggle.expanded {
+            transform: rotate(45deg);
+        }
+        .group-header .group-count {
+            color: #666;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        .edit-group, .add-subgroup {
+            padding: 2px 8px;
+            font-size: 12px;
+            margin-left: 5px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .edit-group:hover, .add-subgroup:hover {
+            background-color: #0b7dda;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .modal-buttons button {
+            margin: 0 5px;
+        }
+        .subgroup-header {
+            background-color: #f0f0f0;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            margin-left: 20px;
+        }
+        .subgroup-header:hover {
+            background-color: #e8e8e8;
+        }
+        .subgroup-content {
+            margin-left: 40px;
+            display: none;
+        }
+        .subgroup-content.expanded {
+            display: block;
+        }
+        .subgroup-header .group-toggle {
+            width: 16px;
+            height: 16px;
+            font-size: 14px;
+        }
+        .subgroup-header .group-count {
+            font-size: 0.85em;
+        }
+        .subgroup-header .edit-group,
+        .subgroup-header .add-subgroup {
+            font-size: 11px;
+            padding: 1px 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AIで作った単語帳アプリ</h1>
+        
+        <div class="controls" style="margin-bottom: 20px;">
+            <button id="exportAll" class="secondary">全ての単語帳をエクスポート</button>
+            <button id="importAll" class="secondary">全ての単語帳をインポート</button>
+            <input type="file" id="importAllFile" accept=".json" style="display: none;">
+        </div>
+        
+        <div class="form-group">
+            <label for="cardSetName">単語帳セット名</label>
+            <input type="text" id="cardSetName" placeholder="新しい単語帳セット名を入力">
+            <select id="cardSetGroup">
+                <option value="">グループなし</option>
+                <option value="new">新しいグループを作成</option>
+            </select>
+            <input type="text" id="newGroupName" placeholder="新しいグループ名" style="display: none;">
+            <button id="createCardSet">新しい単語帳セットを作成</button>
+        </div>
+        
+        <div class="card-set-list" id="cardSetList">
+            <h3>単語帳セット一覧</h3>
+            <!-- 単語帳セットがここに表示されます -->
+        </div>
+        
+        <div id="cardSetView" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 id="currentCardSetName">単語帳セット名</h2>
+                <div>
+                    <button id="editCardSet" class="edit">セットを編集</button>
+                    <button id="exportCardSet" class="secondary">セットをエクスポート</button>
+                    <button id="importCardSet" class="secondary">セットをインポート</button>
+                    <input type="file" id="importCardSetFile" accept=".json" style="display: none;">
+                </div>
+            </div>
+            
+            <div class="group-selector">
+                <label for="groupFilter">グループでフィルター：</label>
+                <select id="groupFilter">
+                    <option value="">全てのグループ</option>
+                </select>
+            </div>
+            
+            <div class="view-toggle">
+                <button id="viewCard" class="active">カード表示</button>
+                <button id="viewList">リスト表示</button>
+            </div>
+            
+            <!-- カード表示ビュー -->
+            <div id="cardView">
+                <div class="card" id="flashcard" onclick="flipCard()">
+                    <div class="card-side-indicator" id="sideIndicator">表</div>
+                    <div class="media-type-indicator" id="mediaTypeIndicator"></div>
+                    <div class="card-content" id="cardContent">
+                        <div id="cardFront">カードをクリックして反転</div>
+                        <div id="cardBack" style="display: none;"></div>
+                    </div>
+                    <div class="media-container" id="mediaContainer"></div>
+                    <div class="card-description" id="cardDescription" style="display: none;"></div>
+                    <a id="urlButton" class="url-button disabled" href="#" target="_blank" rel="noopener noreferrer">URL</a>
+                    <button id="toggleDescription" class="secondary" style="margin-top: 10px; display: none;">概要を表示</button>
+                </div>
+                
+                <div class="progress">
+                    <span id="currentCardIndex">0</span> / <span id="totalCards">0</span>
+                </div>
+                
+                <div class="navigation">
+                    <button id="prevCard">前へ</button>
+                    <button id="nextCard">次へ</button>
+                </div>
+            </div>
+            
+            <!-- リスト表示ビュー -->
+            <div id="listView" class="hidden">
+                <div class="card-list" id="cardListContainer">
+                    <!-- カードリストがここに表示されます -->
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button id="addCard">カードを追加</button>
+                <button class="edit" id="editCard">カードを編集</button>
+                <button class="delete" id="deleteCard">カードを削除</button>
+            </div>
+        </div>
+        
+        <!-- カード追加/編集モーダル -->
+        <div id="cardModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+            <div style="background-color: white; padding: 20px; border-radius: 8px; width: 80%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+                <h2 id="modalTitle">カードを追加</h2>
+                <div class="form-group">
+                    <label for="frontText">表（単語/質問）</label>
+                    <textarea id="frontText" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="backText">裏（意味/答え）</label>
+                    <textarea id="backText" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="cardUrl">URL</label>
+                    <input type="url" id="cardUrl" placeholder="関連するURLを入力">
+                </div>
+                <div class="form-group">
+                    <label for="cardDescriptionText">概要（メモ）</label>
+                    <textarea id="cardDescriptionText" rows="2" placeholder="追加情報や例文などを入力"></textarea>
+                </div>
+                
+                <div class="tab-container">
+                    <div class="tab active" data-tab="media">メディア</div>
+                    <div class="tab" data-tab="text">テキスト</div>
+                </div>
+                
+                <div class="tab-content active" id="mediaTab">
+                    <div class="form-group">
+                        <label for="mediaUpload">メディアアップロード</label>
+                        <input type="file" id="mediaUpload" accept="image/*,audio/*,video/*">
+                        <div style="margin-top: 10px;">
+                            <div id="mediaPreviewContainer"></div>
+                            <button id="removeMedia" class="secondary" style="display: none; margin-top: 5px;">メディアを削除</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="textTab">
+                    <div class="form-group">
+                        <label for="additionalText">追加テキスト</label>
+                        <textarea id="additionalText" rows="3" placeholder="補足テキストを入力"></textarea>
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                    <button id="cancelModal">キャンセル</button>
+                    <button id="saveCard">保存</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- カードセット編集モーダル -->
+        <div id="cardSetModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+            <div style="background-color: white; padding: 20px; border-radius: 8px; width: 80%; max-width: 500px;">
+                <h2>単語帳セットを編集</h2>
+                <div class="form-group">
+                    <label for="editCardSetName">セット名</label>
+                    <input type="text" id="editCardSetName">
+                </div>
+                <div class="form-group">
+                    <label for="editCardSetDescription">セット説明</label>
+                    <textarea id="editCardSetDescription" rows="2"></textarea>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                    <button id="deleteCardSet" class="delete">セットを削除</button>
+                    <div>
+                        <button id="cancelCardSetModal">キャンセル</button>
+                        <button id="saveCardSet">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 単語帳データ
+        let cardSets = JSON.parse(localStorage.getItem('cardSets')) || [];
+        let groups = JSON.parse(localStorage.getItem('groups')) || [];
+        let currentCardSetIndex = -1;
+        let currentCardIndex = 0;
+        let isFlipped = false;
+        let isEditing = false;
+        let editCardIndex = -1;
+        let currentView = 'card'; // 'card' or 'list'
+        let tempMediaData = null;
+        let tempMediaType = null;
+        let tempAdditionalText = null;
+        let currentGroupFilter = ''; // 現在のグループフィルター
+        let editingGroupId = null; // 編集中のグループID
+
+        // グループの構造
+        class Group {
+            constructor(name, parentId = null) {
+                this.id = Date.now().toString();
+                this.name = name;
+                this.parentId = parentId;
+                this.subGroups = [];
+            }
+        }
+
+        // グループを取得
+        function getGroup(groupId) {
+            return groups.find(g => g.id === groupId);
+        }
+
+        // グループのパスを取得
+        function getGroupPath(groupId) {
+            const path = [];
+            let currentGroup = getGroup(groupId);
+            
+            while (currentGroup) {
+                path.unshift(currentGroup.name);
+                currentGroup = currentGroup.parentId ? getGroup(currentGroup.parentId) : null;
+            }
+            
+            return path.join(' > ');
+        }
+
+        // グループの子グループを取得
+        function getSubGroups(groupId) {
+            return groups.filter(g => g.parentId === groupId);
+        }
+
+        // グループの単語帳を取得
+        function getGroupCardSets(groupId) {
+            return cardSets.filter(set => set.groupId === groupId);
+        }
+
+        // グループを保存
+        function saveGroups() {
+            localStorage.setItem('groups', JSON.stringify(groups));
+        }
+
+        // グループセレクターを更新
+        function updateGroupSelectors() {
+            // グループセレクターの更新
+            const groupOptions = '<option value="">グループなし</option><option value="new">新しいグループを作成</option>';
+            cardSetGroup.innerHTML = groupOptions;
+            
+            // グループを階層的に表示
+            function addGroupOptions(groupId = null, level = 0) {
+                const subGroups = getSubGroups(groupId);
+                subGroups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group.id;
+                    option.textContent = '　'.repeat(level) + group.name;
+                    cardSetGroup.appendChild(option);
+                    addGroupOptions(group.id, level + 1);
+                });
+            }
+            
+            addGroupOptions();
+
+            // グループフィルターの更新
+            const filterOptions = '<option value="">全てのグループ</option>';
+            groupFilter.innerHTML = filterOptions;
+            
+            function addFilterOptions(groupId = null, level = 0) {
+                const subGroups = getSubGroups(groupId);
+                subGroups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group.id;
+                    option.textContent = '　'.repeat(level) + group.name;
+                    groupFilter.appendChild(option);
+                    addFilterOptions(group.id, level + 1);
+                });
+            }
+            
+            addFilterOptions();
+        }
+
+        // 単語帳セットリストを表示
+        function renderCardSetList() {
+            cardSetList.innerHTML = '<h3>単語帳セット一覧</h3>';
+            
+            if (cardSets.length === 0) {
+                cardSetList.innerHTML += '<p>単語帳セットがありません</p>';
+                return;
+            }
+
+            // メイングループを表示
+            const mainGroups = groups.filter(g => !g.parentId);
+            mainGroups.forEach(group => {
+                const groupContainer = document.createElement('div');
+                groupContainer.className = 'group-container';
+                
+                const groupHeader = document.createElement('div');
+                groupHeader.className = 'group-header';
+                groupHeader.innerHTML = `
+                    <div>
+                        <span class="group-toggle">+</span>
+                        ${group.name}
+                        <span class="group-count">(${getGroupCardSets(group.id).length}セット)</span>
+                        <button class="edit-group" data-group-id="${group.id}">編集</button>
+                        <button class="add-subgroup" data-group-id="${group.id}">サブグループ追加</button>
+                    </div>
+                `;
+
+                const groupContent = document.createElement('div');
+                groupContent.className = 'group-content';
+                
+                // グループ内の単語帳を表示
+                const groupCardSets = getGroupCardSets(group.id);
+                groupCardSets.forEach(set => {
+                    const setItem = document.createElement('div');
+                    setItem.className = 'card-set-item';
+                    if (cardSets.indexOf(set) === currentCardSetIndex) {
+                        setItem.classList.add('active');
+                    }
+                    
+                    setItem.innerHTML = `
+                        <span>${set.name} (${set.cards.length}枚) - ${set.description || ''}</span>
+                        <div class="card-set-actions">
+                            <button class="secondary" data-action="edit" data-index="${cardSets.indexOf(set)}">編集</button>
+                            <button class="delete" data-action="delete" data-index="${cardSets.indexOf(set)}">削除</button>
+                        </div>
+                    `;
+                    
+                    setItem.addEventListener('click', (e) => {
+                        if (!e.target.closest('button')) {
+                            loadCardSet(cardSets.indexOf(set));
+                        }
+                    });
+                    
+                    setItem.querySelector('[data-action="edit"]').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        currentCardSetIndex = cardSets.indexOf(set);
+                        showEditCardSetModal();
+                    });
+                    
+                    setItem.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (confirm(`「${set.name}」を削除しますか？この操作は元に戻せません。`)) {
+                            deleteCardSet(cardSets.indexOf(set));
+                        }
+                    });
+                    
+                    groupContent.appendChild(setItem);
+                });
+
+                // サブグループを表示
+                function renderSubGroups(parentId, level = 1) {
+                    const subGroups = groups.filter(g => g.parentId === parentId);
+                    subGroups.forEach(subGroup => {
+                        const subGroupHeader = document.createElement('div');
+                        subGroupHeader.className = 'subgroup-header';
+                        subGroupHeader.style.marginLeft = `${level * 20}px`;
+                        subGroupHeader.innerHTML = `
+                            <div>
+                                <span class="group-toggle">+</span>
+                                ${subGroup.name}
+                                <span class="group-count">(${getGroupCardSets(subGroup.id).length}セット)</span>
+                                <button class="edit-group" data-group-id="${subGroup.id}">編集</button>
+                                <button class="add-subgroup" data-group-id="${subGroup.id}">サブグループ追加</button>
+                            </div>
+                        `;
+
+                        const subGroupContent = document.createElement('div');
+                        subGroupContent.className = 'subgroup-content';
+                        subGroupContent.style.marginLeft = `${(level + 1) * 20}px`;
+                        
+                        // サブグループ内の単語帳を表示
+                        const subGroupSets = getGroupCardSets(subGroup.id);
+                        subGroupSets.forEach(set => {
+                            const setItem = document.createElement('div');
+                            setItem.className = 'card-set-item';
+                            if (cardSets.indexOf(set) === currentCardSetIndex) {
+                                setItem.classList.add('active');
+                            }
+                            
+                            setItem.innerHTML = `
+                                <span>${set.name} (${set.cards.length}枚) - ${set.description || ''}</span>
+                                <div class="card-set-actions">
+                                    <button class="secondary" data-action="edit" data-index="${cardSets.indexOf(set)}">編集</button>
+                                    <button class="delete" data-action="delete" data-index="${cardSets.indexOf(set)}">削除</button>
+                                </div>
+                            `;
+                            
+                            setItem.addEventListener('click', (e) => {
+                                if (!e.target.closest('button')) {
+                                    loadCardSet(cardSets.indexOf(set));
+                                }
+                            });
+                            
+                            setItem.querySelector('[data-action="edit"]').addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                currentCardSetIndex = cardSets.indexOf(set);
+                                showEditCardSetModal();
+                            });
+                            
+                            setItem.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                if (confirm(`「${set.name}」を削除しますか？この操作は元に戻せません。`)) {
+                                    deleteCardSet(cardSets.indexOf(set));
+                                }
+                            });
+                            
+                            subGroupContent.appendChild(setItem);
+                        });
+
+                        // サブグループヘッダーのクリックイベント
+                        subGroupHeader.addEventListener('click', (e) => {
+                            if (e.target.classList.contains('edit-group')) {
+                                e.stopPropagation();
+                                editingGroupId = e.target.dataset.groupId;
+                                showEditGroupModal();
+                                return;
+                            }
+                            
+                            if (e.target.classList.contains('add-subgroup')) {
+                                e.stopPropagation();
+                                showAddGroupModal(e.target.dataset.groupId);
+                                return;
+                            }
+                            
+                            const toggle = subGroupHeader.querySelector('.group-toggle');
+                            const content = subGroupHeader.nextElementSibling;
+                            
+                            if (content.classList.contains('expanded')) {
+                                content.classList.remove('expanded');
+                                toggle.classList.remove('expanded');
+                                toggle.textContent = '+';
+                            } else {
+                                content.classList.add('expanded');
+                                toggle.classList.add('expanded');
+                                toggle.textContent = '×';
+                            }
+                        });
+
+                        groupContent.appendChild(subGroupHeader);
+                        groupContent.appendChild(subGroupContent);
+                        
+                        // 再帰的にサブグループを表示
+                        renderSubGroups(subGroup.id, level + 1);
+                    });
+                }
+
+                renderSubGroups(group.id);
+
+                // グループヘッダーのクリックイベント
+                groupHeader.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('edit-group')) {
+                        e.stopPropagation();
+                        editingGroupId = e.target.dataset.groupId;
+                        showEditGroupModal();
+                        return;
+                    }
+                    
+                    if (e.target.classList.contains('add-subgroup')) {
+                        e.stopPropagation();
+                        showAddGroupModal(e.target.dataset.groupId);
+                        return;
+                    }
+                    
+                    const toggle = groupHeader.querySelector('.group-toggle');
+                    const content = groupHeader.nextElementSibling;
+                    
+                    if (content.classList.contains('expanded')) {
+                        content.classList.remove('expanded');
+                        toggle.classList.remove('expanded');
+                        toggle.textContent = '+';
+                    } else {
+                        content.classList.add('expanded');
+                        toggle.classList.add('expanded');
+                        toggle.textContent = '×';
+                    }
+                });
+
+                groupContainer.appendChild(groupHeader);
+                groupContainer.appendChild(groupContent);
+                cardSetList.appendChild(groupContainer);
+            });
+
+            // 「グループなし」の単語帳を表示
+            const ungroupedSets = cardSets.filter(set => !set.groupId);
+            if (ungroupedSets.length > 0) {
+                const ungroupedContainer = document.createElement('div');
+                ungroupedContainer.className = 'group-container';
+                
+                const ungroupedHeader = document.createElement('div');
+                ungroupedHeader.className = 'group-header';
+                ungroupedHeader.innerHTML = `
+                    <div>
+                        <span class="group-toggle">+</span>
+                        グループなし
+                        <span class="group-count">(${ungroupedSets.length}セット)</span>
+                    </div>
+                `;
+
+                const ungroupedContent = document.createElement('div');
+                ungroupedContent.className = 'group-content';
+                
+                ungroupedSets.forEach(set => {
+                    const setItem = document.createElement('div');
+                    setItem.className = 'card-set-item';
+                    if (cardSets.indexOf(set) === currentCardSetIndex) {
+                        setItem.classList.add('active');
+                    }
+                    
+                    setItem.innerHTML = `
+                        <span>${set.name} (${set.cards.length}枚) - ${set.description || ''}</span>
+                        <div class="card-set-actions">
+                            <button class="secondary" data-action="edit" data-index="${cardSets.indexOf(set)}">編集</button>
+                            <button class="delete" data-action="delete" data-index="${cardSets.indexOf(set)}">削除</button>
+                        </div>
+                    `;
+                    
+                    setItem.addEventListener('click', (e) => {
+                        if (!e.target.closest('button')) {
+                            loadCardSet(cardSets.indexOf(set));
+                        }
+                    });
+                    
+                    setItem.querySelector('[data-action="edit"]').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        currentCardSetIndex = cardSets.indexOf(set);
+                        showEditCardSetModal();
+                    });
+                    
+                    setItem.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (confirm(`「${set.name}」を削除しますか？この操作は元に戻せません。`)) {
+                            deleteCardSet(cardSets.indexOf(set));
+                        }
+                    });
+                    
+                    ungroupedContent.appendChild(setItem);
+                });
+
+                // 「グループなし」ヘッダーのクリックイベント
+                ungroupedHeader.addEventListener('click', () => {
+                    const toggle = ungroupedHeader.querySelector('.group-toggle');
+                    const content = ungroupedHeader.nextElementSibling;
+                    
+                    if (content.classList.contains('expanded')) {
+                        content.classList.remove('expanded');
+                        toggle.classList.remove('expanded');
+                        toggle.textContent = '+';
+                    } else {
+                        content.classList.add('expanded');
+                        toggle.classList.add('expanded');
+                        toggle.textContent = '×';
+                    }
+                });
+
+                ungroupedContainer.appendChild(ungroupedHeader);
+                ungroupedContainer.appendChild(ungroupedContent);
+                cardSetList.appendChild(ungroupedContainer);
+            }
+        }
+
+        // グループ編集モーダルを表示
+        function showEditGroupModal() {
+            const group = getGroup(editingGroupId);
+            if (!group) return;
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>グループを編集</h2>
+                    <div class="form-group">
+                        <label for="editGroupName">グループ名</label>
+                        <input type="text" id="editGroupName" value="${group.name}">
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="deleteGroup" class="delete">グループを削除</button>
+                        <button id="cancelEditGroup">キャンセル</button>
+                        <button id="saveGroup">保存</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // イベントリスナー
+            modal.querySelector('#cancelEditGroup').addEventListener('click', () => {
+                modal.remove();
+            });
+            
+            modal.querySelector('#saveGroup').addEventListener('click', () => {
+                const newName = modal.querySelector('#editGroupName').value.trim();
+                if (!newName) {
+                    alert('グループ名を入力してください');
+                    return;
+                }
+                
+                group.name = newName;
+                saveGroups();
+                modal.remove();
+                renderCardSetList();
+                updateGroupSelectors();
+            });
+            
+            modal.querySelector('#deleteGroup').addEventListener('click', () => {
+                if (confirm('このグループを削除しますか？グループ内の単語帳は「グループなし」に移動されます。')) {
+                    // グループ内の単語帳を「グループなし」に移動
+                    cardSets.forEach(set => {
+                        if (set.groupId === editingGroupId) {
+                            set.groupId = null;
+                        }
+                    });
+                    
+                    // グループを削除
+                    groups = groups.filter(g => g.id !== editingGroupId);
+                    saveGroups();
+                    saveToLocalStorage();
+                    modal.remove();
+                    renderCardSetList();
+                    updateGroupSelectors();
+                }
+            });
+        }
+
+        // サブグループ追加モーダルを表示
+        function showAddGroupModal(parentId) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>サブグループを追加</h2>
+                    <div class="form-group">
+                        <label for="newGroupName">グループ名</label>
+                        <input type="text" id="newGroupName">
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="cancelAddGroup">キャンセル</button>
+                        <button id="saveNewGroup">保存</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // イベントリスナー
+            modal.querySelector('#cancelAddGroup').addEventListener('click', () => {
+                modal.remove();
+            });
+            
+            modal.querySelector('#saveNewGroup').addEventListener('click', () => {
+                const name = modal.querySelector('#newGroupName').value.trim();
+                if (!name) {
+                    alert('グループ名を入力してください');
+                    return;
+                }
+                
+                const newGroup = new Group(name, parentId);
+                groups.push(newGroup);
+                saveGroups();
+                modal.remove();
+                renderCardSetList();
+                updateGroupSelectors();
+            });
+        }
+
+        // グループを変更
+        function handleGroupChange() {
+            const groupId = cardSetGroup.value;
+            if (groupId === 'new') {
+                showAddGroupModal(null);
+            }
+        }
+
+        // 単語帳セットを作成
+        function createCardSet() {
+            const name = cardSetNameInput.value.trim();
+            if (!name) {
+                alert('単語帳セット名を入力してください');
+                return;
+            }
+            
+            const groupId = cardSetGroup.value;
+            
+            const newCardSet = {
+                name,
+                description: '',
+                cards: [],
+                groupId: groupId || null
+            };
+            
+            cardSets.push(newCardSet);
+            saveToLocalStorage();
+            cardSetNameInput.value = '';
+            renderCardSetList();
+            loadCardSet(cardSets.length - 1);
+        }
+
+        // 単語帳セットを保存
+        function saveCardSet() {
+            const name = editCardSetName.value.trim();
+            if (!name) {
+                alert('セット名を入力してください');
+                return;
+            }
+            
+            cardSets[currentCardSetIndex].name = name;
+            cardSets[currentCardSetIndex].description = editCardSetDescription.value.trim() || undefined;
+            cardSets[currentCardSetIndex].groupId = cardSetGroup.value || null;
+            
+            saveToLocalStorage();
+            hideCardSetModal();
+            currentCardSetName.textContent = name;
+            renderCardSetList();
+            updateGroupSelectors();
+        }
+
+        // DOM要素
+        const cardSetNameInput = document.getElementById('cardSetName');
+        const createCardSetBtn = document.getElementById('createCardSet');
+        const cardSetList = document.getElementById('cardSetList');
+        const cardSetView = document.getElementById('cardSetView');
+        const currentCardSetName = document.getElementById('currentCardSetName');
+        const flashcard = document.getElementById('flashcard');
+        const cardFront = document.getElementById('cardFront');
+        const cardBack = document.getElementById('cardBack');
+        const cardDescription = document.getElementById('cardDescription');
+        const mediaContainer = document.getElementById('mediaContainer');
+        const prevCardBtn = document.getElementById('prevCard');
+        const nextCardBtn = document.getElementById('nextCard');
+        const addCardBtn = document.getElementById('addCard');
+        const editCardBtn = document.getElementById('editCard');
+        const deleteCardBtn = document.getElementById('deleteCard');
+        const currentCardIndexSpan = document.getElementById('currentCardIndex');
+        const totalCardsSpan = document.getElementById('totalCards');
+        const cardModal = document.getElementById('cardModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const frontText = document.getElementById('frontText');
+        const backText = document.getElementById('backText');
+        const cardDescriptionText = document.getElementById('cardDescriptionText');
+        const mediaUpload = document.getElementById('mediaUpload');
+        const mediaPreviewContainer = document.getElementById('mediaPreviewContainer');
+        const removeMediaBtn = document.getElementById('removeMedia');
+        const cancelModalBtn = document.getElementById('cancelModal');
+        const saveCardBtn = document.getElementById('saveCard');
+        const viewCardBtn = document.getElementById('viewCard');
+        const viewListBtn = document.getElementById('viewList');
+        const cardView = document.getElementById('cardView');
+        const listView = document.getElementById('listView');
+        const cardListContainer = document.getElementById('cardListContainer');
+        const sideIndicator = document.getElementById('sideIndicator');
+        const mediaTypeIndicator = document.getElementById('mediaTypeIndicator');
+        const exportCardSetBtn = document.getElementById('exportCardSet');
+        const importCardSetBtn = document.getElementById('importCardSet');
+        const importCardSetFile = document.getElementById('importCardSetFile');
+        const editCardSetBtn = document.getElementById('editCardSet');
+        const cardSetModal = document.getElementById('cardSetModal');
+        const editCardSetName = document.getElementById('editCardSetName');
+        const editCardSetDescription = document.getElementById('editCardSetDescription');
+        const deleteCardSetBtn = document.getElementById('deleteCardSet');
+        const cancelCardSetModalBtn = document.getElementById('cancelCardSetModal');
+        const saveCardSetBtn = document.getElementById('saveCardSet');
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const additionalText = document.getElementById('additionalText');
+        const toggleDescriptionBtn = document.getElementById('toggleDescription');
+        const exportAllBtn = document.getElementById('exportAll');
+        const importAllBtn = document.getElementById('importAll');
+        const importAllFile = document.getElementById('importAllFile');
+        const cardUrl = document.getElementById('cardUrl');
+        const cardSetGroup = document.getElementById('cardSetGroup');
+        const newGroupName = document.getElementById('newGroupName');
+        const groupFilter = document.getElementById('groupFilter');
+        const urlButton = document.getElementById('urlButton');
+
+        // 初期化
+        function init() {
+            renderCardSetList();
+            loadFromLocalStorage();
+            updateGroupSelectors();
+            
+            // イベントリスナー
+            createCardSetBtn.addEventListener('click', createCardSet);
+            prevCardBtn.addEventListener('click', showPrevCard);
+            nextCardBtn.addEventListener('click', showNextCard);
+            addCardBtn.addEventListener('click', showAddCardModal);
+            editCardBtn.addEventListener('click', showEditCardModal);
+            deleteCardBtn.addEventListener('click', deleteCurrentCard);
+            cancelModalBtn.addEventListener('click', hideModal);
+            saveCardBtn.addEventListener('click', saveCard);
+            viewCardBtn.addEventListener('click', () => switchView('card'));
+            viewListBtn.addEventListener('click', () => switchView('list'));
+            mediaUpload.addEventListener('change', handleMediaUpload);
+            removeMediaBtn.addEventListener('click', removeMedia);
+            exportCardSetBtn.addEventListener('click', exportCardSet);
+            importCardSetBtn.addEventListener('click', () => importCardSetFile.click());
+            importCardSetFile.addEventListener('change', handleImportCardSet);
+            editCardSetBtn.addEventListener('click', showEditCardSetModal);
+            deleteCardSetBtn.addEventListener('click', deleteCurrentCardSet);
+            cancelCardSetModalBtn.addEventListener('click', hideCardSetModal);
+            saveCardSetBtn.addEventListener('click', saveCardSet);
+            toggleDescriptionBtn.addEventListener('click', toggleDescription);
+            exportAllBtn.addEventListener('click', exportAllCardSets);
+            importAllBtn.addEventListener('click', () => importAllFile.click());
+            importAllFile.addEventListener('change', handleImportAllCardSets);
+            cardSetGroup.addEventListener('change', handleGroupChange);
+            groupFilter.addEventListener('change', handleGroupFilterChange);
+            
+            // タブ切り替え
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
+                    switchTab(tabId);
+                });
+            });
+        }
+
+        // タブを切り替え
+        function switchTab(tabId) {
+            tabs.forEach(tab => {
+                if (tab.getAttribute('data-tab') === tabId) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+            
+            tabContents.forEach(content => {
+                if (content.id === `${tabId}Tab`) {
+                    content.classList.add('active');
+                } else {
+                    content.classList.remove('active');
+                }
+            });
+        }
+
+        // 単語帳セットを読み込む
+        function loadCardSet(index) {
+            if (index < 0 || index >= cardSets.length) return;
+            
+            currentCardSetIndex = index;
+            currentCardIndex = 0;
+            isFlipped = false;
+            
+            const cardSet = cardSets[index];
+            currentCardSetName.textContent = cardSet.name;
+            cardSetView.style.display = 'block';
+            
+            renderCardSetList();
+            updateCardDisplay();
+            renderCardList();
+        }
+
+        // カードを表示
+        function updateCardDisplay() {
+            if (currentCardSetIndex === -1 || cardSets[currentCardSetIndex].cards.length === 0) {
+                cardFront.textContent = 'カードがありません';
+                cardBack.style.display = 'none';
+                cardFront.style.display = 'block';
+                cardDescription.style.display = 'none';
+                urlButton.classList.add('disabled');
+                urlButton.href = '#';
+                mediaContainer.innerHTML = '';
+                mediaTypeIndicator.textContent = '';
+                totalCardsSpan.textContent = '0';
+                currentCardIndexSpan.textContent = '0';
+                sideIndicator.textContent = '表';
+                toggleDescriptionBtn.style.display = 'none';
+                return;
+            }
+            
+            const cards = cardSets[currentCardSetIndex].cards;
+            const currentCard = cards[currentCardIndex];
+            
+            cardFront.textContent = currentCard.front;
+            cardBack.textContent = currentCard.back;
+            
+            if (currentCard.description) {
+                cardDescription.textContent = currentCard.description;
+                cardDescription.style.display = 'none';
+                toggleDescriptionBtn.style.display = 'block';
+                toggleDescriptionBtn.textContent = '概要を表示';
+            } else {
+                cardDescription.style.display = 'none';
+                toggleDescriptionBtn.style.display = 'none';
+            }
+
+            if (currentCard.url) {
+                urlButton.classList.remove('disabled');
+                urlButton.href = currentCard.url;
+            } else {
+                urlButton.classList.add('disabled');
+                urlButton.href = '#';
+            }
+            
+            // メディア表示
+            renderMedia(currentCard);
+            
+            if (isFlipped) {
+                cardFront.style.display = 'none';
+                cardBack.style.display = 'block';
+                sideIndicator.textContent = '裏';
+            } else {
+                cardFront.style.display = 'block';
+                cardBack.style.display = 'none';
+                sideIndicator.textContent = '表';
+            }
+            
+            totalCardsSpan.textContent = cards.length;
+            currentCardIndexSpan.textContent = currentCardIndex + 1;
+        }
+
+        // メディアを表示
+        function renderMedia(card) {
+            mediaContainer.innerHTML = '';
+            mediaTypeIndicator.textContent = '';
+            
+            if (card.media) {
+                let mediaHtml = '';
+                let typeIndicator = '';
+                
+                if (card.mediaType === 'image') {
+                    mediaHtml = `<img src="${card.media}" class="media-preview">`;
+                    typeIndicator = '画像';
+                } else if (card.mediaType === 'audio') {
+                    mediaHtml = `<audio controls src="${card.media}" class="media-preview"></audio>`;
+                    typeIndicator = '音声';
+                } else if (card.mediaType === 'video') {
+                    mediaHtml = `<video controls src="${card.media}" class="media-preview"></video>`;
+                    typeIndicator = '動画';
+                } else if (card.mediaType === 'text') {
+                    mediaHtml = `<div class="additional-text">${card.additionalText || ''}</div>`;
+                    typeIndicator = 'テキスト';
+                }
+                
+                mediaContainer.innerHTML = mediaHtml;
+                mediaTypeIndicator.textContent = typeIndicator;
+            }
+        }
+
+        // カードリストを表示
+        function renderCardList() {
+            if (currentCardSetIndex === -1) {
+                cardListContainer.innerHTML = '<p>単語帳セットを選択してください</p>';
+                return;
+            }
+            
+            const cards = cardSets[currentCardSetIndex].cards;
+            
+            if (cards.length === 0) {
+                cardListContainer.innerHTML = '<p>カードがありません</p>';
+                return;
+            }
+            
+            cardListContainer.innerHTML = '';
+            
+            cards.forEach((card, index) => {
+                const cardItem = document.createElement('div');
+                cardItem.className = 'card-list-item clearfix';
+                if (index === currentCardIndex) {
+                    cardItem.classList.add('active');
+                }
+                
+                let mediaHtml = '';
+                if (card.media) {
+                    if (card.mediaType === 'image') {
+                        mediaHtml = `<img src="${card.media}" class="card-list-media">`;
+                    } else if (card.mediaType === 'audio') {
+                        mediaHtml = `<div class="file-icon">🎵</div>`;
+                    } else if (card.mediaType === 'video') {
+                        mediaHtml = `<div class="file-icon">🎬</div>`;
+                    } else if (card.mediaType === 'text') {
+                        mediaHtml = `<div class="file-icon">📝</div>`;
+                    }
+                }
+                
+                cardItem.innerHTML = `
+                    ${mediaHtml}
+                    <h4>${card.front}</h4>
+                    <p>${card.back}</p>
+                    ${card.description ? `<p class="card-description">${card.description}</p>` : ''}
+                `;
+                
+                cardItem.addEventListener('click', () => {
+                    currentCardIndex = index;
+                    isFlipped = false;
+                    updateCardDisplay();
+                    if (currentView === 'list') {
+                        renderCardList();
+                    }
+                });
+                
+                cardListContainer.appendChild(cardItem);
+            });
+        }
+
+        // カードを反転
+        function flipCard() {
+            if (currentCardSetIndex === -1 || cardSets[currentCardSetIndex].cards.length === 0) return;
+            
+            isFlipped = !isFlipped;
+            updateCardDisplay();
+        }
+
+        // 前のカードを表示
+        function showPrevCard() {
+            if (currentCardSetIndex === -1) return;
+            
+            const cards = cardSets[currentCardSetIndex].cards;
+            if (cards.length === 0) return;
+            
+            currentCardIndex = (currentCardIndex - 1 + cards.length) % cards.length;
+            isFlipped = false;
+            updateCardDisplay();
+            if (currentView === 'list') {
+                renderCardList();
+            }
+        }
+
+        // 次のカードを表示
+        function showNextCard() {
+            if (currentCardSetIndex === -1) return;
+            
+            const cards = cardSets[currentCardSetIndex].cards;
+            if (cards.length === 0) return;
+            
+            currentCardIndex = (currentCardIndex + 1) % cards.length;
+            isFlipped = false;
+            updateCardDisplay();
+            if (currentView === 'list') {
+                renderCardList();
+            }
+        }
+
+        // 表示モードを切り替え
+        function switchView(view) {
+            currentView = view;
+            
+            if (view === 'card') {
+                cardView.style.display = 'block';
+                listView.style.display = 'none';
+                viewCardBtn.classList.add('active');
+                viewListBtn.classList.remove('active');
+            } else {
+                cardView.style.display = 'none';
+                listView.style.display = 'block';
+                viewCardBtn.classList.remove('active');
+                viewListBtn.classList.add('active');
+                renderCardList();
+            }
+        }
+
+        // カード追加モーダルを表示
+        function showAddCardModal() {
+            if (currentCardSetIndex === -1) {
+                alert('まず単語帳セットを選択または作成してください');
+                return;
+            }
+            
+            isEditing = false;
+            editCardIndex = -1;
+            modalTitle.textContent = 'カードを追加';
+            frontText.value = '';
+            backText.value = '';
+            cardDescriptionText.value = '';
+            cardUrl.value = '';
+            mediaUpload.value = '';
+            mediaPreviewContainer.innerHTML = '';
+            removeMediaBtn.style.display = 'none';
+            tempMediaData = null;
+            tempMediaType = null;
+            tempAdditionalText = null;
+            switchTab('media');
+            cardModal.style.display = 'flex';
+        }
+
+        // カード編集モーダルを表示
+        function showEditCardModal() {
+            if (currentCardSetIndex === -1 || cardSets[currentCardSetIndex].cards.length === 0) {
+                alert('編集するカードがありません');
+                return;
+            }
+            
+            isEditing = true;
+            editCardIndex = currentCardIndex;
+            modalTitle.textContent = 'カードを編集';
+            
+            const card = cardSets[currentCardSetIndex].cards[editCardIndex];
+            frontText.value = card.front;
+            backText.value = card.back;
+            cardDescriptionText.value = card.description || '';
+            cardUrl.value = card.url || '';
+            additionalText.value = card.additionalText || '';
+            
+            mediaPreviewContainer.innerHTML = '';
+            if (card.media) {
+                if (card.mediaType === 'image') {
+                    mediaPreviewContainer.innerHTML = `<img src="${card.media}" style="max-width: 100%; max-height: 200px;">`;
+                } else if (card.mediaType === 'audio') {
+                    mediaPreviewContainer.innerHTML = `<audio controls src="${card.media}" style="width: 100%;"></audio>`;
+                } else if (card.mediaType === 'video') {
+                    mediaPreviewContainer.innerHTML = `<video controls src="${card.media}" style="max-width: 100%; max-height: 200px;"></video>`;
+                } else if (card.mediaType === 'text') {
+                    switchTab('text');
+                }
+                removeMediaBtn.style.display = 'block';
+            } else {
+                removeMediaBtn.style.display = 'none';
+            }
+            
+            tempMediaData = card.media || null;
+            tempMediaType = card.mediaType || null;
+            tempAdditionalText = card.additionalText || null;
+            
+            mediaUpload.value = '';
+            
+            cardModal.style.display = 'flex';
+        }
+
+        // メディアアップロードを処理
+        function handleMediaUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const fileType = file.type.split('/')[0];
+            const validTypes = ['image', 'audio', 'video'];
+            
+            if (!validTypes.includes(fileType)) {
+                alert('画像、音声、動画ファイルを選択してください');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                mediaPreviewContainer.innerHTML = '';
+                
+                if (fileType === 'image') {
+                    mediaPreviewContainer.innerHTML = `<img src="${event.target.result}" style="max-width: 100%; max-height: 200px;">`;
+                } else if (fileType === 'audio') {
+                    mediaPreviewContainer.innerHTML = `<audio controls src="${event.target.result}" style="width: 100%;"></audio>`;
+                } else if (fileType === 'video') {
+                    mediaPreviewContainer.innerHTML = `<video controls src="${event.target.result}" style="max-width: 100%; max-height: 200px;"></video>`;
+                }
+                
+                removeMediaBtn.style.display = 'block';
+                tempMediaData = event.target.result;
+                tempMediaType = fileType;
+                tempAdditionalText = null;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // メディアを削除
+        function removeMedia() {
+            mediaPreviewContainer.innerHTML = '';
+            removeMediaBtn.style.display = 'none';
+            mediaUpload.value = '';
+            tempMediaData = null;
+            tempMediaType = null;
+            tempAdditionalText = null;
+        }
+
+        // モーダルを非表示
+        function hideModal() {
+            cardModal.style.display = 'none';
+        }
+
+        // カードを保存
+        function saveCard() {
+            const front = frontText.value.trim();
+            const back = backText.value.trim();
+            const description = cardDescriptionText.value.trim();
+            const url = cardUrl.value.trim();
+            const additional = additionalText.value.trim();
+            
+            if (!front || !back) {
+                alert('表と裏の両方を入力してください');
+                return;
+            }
+            
+            const cardData = {
+                front,
+                back,
+                description: description || undefined,
+                url: url || undefined,
+                media: tempMediaData || (isEditing ? cardSets[currentCardSetIndex].cards[editCardIndex].media : undefined),
+                mediaType: tempMediaType || (isEditing ? cardSets[currentCardSetIndex].cards[editCardIndex].mediaType : undefined),
+                additionalText: additional || (tempAdditionalText || (isEditing ? cardSets[currentCardSetIndex].cards[editCardIndex].additionalText : undefined))
+            };
+            
+            if (isEditing) {
+                // 編集モード
+                cardSets[currentCardSetIndex].cards[editCardIndex] = cardData;
+            } else {
+                // 追加モード
+                cardSets[currentCardSetIndex].cards.push(cardData);
+                currentCardIndex = cardSets[currentCardSetIndex].cards.length - 1;
+            }
+            
+            saveToLocalStorage();
+            hideModal();
+            isFlipped = false;
+            updateCardDisplay();
+            renderCardList();
+            renderCardSetList();
+        }
+
+        // 現在のカードを削除
+        function deleteCurrentCard() {
+            if (currentCardSetIndex === -1 || cardSets[currentCardSetIndex].cards.length === 0) {
+                alert('削除するカードがありません');
+                return;
+            }
+            
+            if (!confirm('このカードを削除しますか？')) return;
+            
+            cardSets[currentCardSetIndex].cards.splice(currentCardIndex, 1);
+            
+            // カードが0枚になった場合の処理
+            if (cardSets[currentCardSetIndex].cards.length === 0) {
+                currentCardIndex = 0;
+            } else if (currentCardIndex >= cardSets[currentCardSetIndex].cards.length) {
+                currentCardIndex = cardSets[currentCardSetIndex].cards.length - 1;
+            }
+            
+            saveToLocalStorage();
+            isFlipped = false;
+            updateCardDisplay();
+            renderCardList();
+            renderCardSetList();
+        }
+
+        // 単語帳セットをエクスポート
+        function exportCardSet() {
+            if (currentCardSetIndex === -1) return;
+            
+            const cardSet = cardSets[currentCardSetIndex];
+            const dataStr = JSON.stringify({
+                cardSet: cardSet,
+                groups: groups
+            }, null, 2);
+            
+            // ファイル名を指定して保存
+            const exportName = `${cardSet.name}.json`;
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', url);
+            linkElement.setAttribute('download', exportName);
+            document.body.appendChild(linkElement);
+            linkElement.click();
+            document.body.removeChild(linkElement);
+            
+            URL.revokeObjectURL(url);
+        }
+
+        // 全ての単語帳をエクスポート
+        function exportAllCardSets() {
+            const dataStr = JSON.stringify({
+                cardSets: cardSets,
+                groups: groups
+            }, null, 2);
+            
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', url);
+            linkElement.setAttribute('download', 'all_flashcards.json');
+            document.body.appendChild(linkElement);
+            linkElement.click();
+            document.body.removeChild(linkElement);
+            
+            URL.revokeObjectURL(url);
+        }
+
+        // 単語帳セットをインポート
+        function handleImportCardSet(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    const importedSet = importedData.cardSet;
+                    const importedGroups = importedData.groups || [];
+                    
+                    if (!importedSet.name || !Array.isArray(importedSet.cards)) {
+                        alert('無効な単語帳ファイルです');
+                        return;
+                    }
+                    
+                    // 重複チェック
+                    const existingIndex = cardSets.findIndex(set => set.name === importedSet.name);
+                    if (existingIndex >= 0) {
+                        if (!confirm(`「${importedSet.name}」という名前のセットが既に存在します。上書きしますか？`)) {
+                            return;
+                        }
+                        cardSets[existingIndex] = importedSet;
+                        currentCardSetIndex = existingIndex;
+                    } else {
+                        cardSets.push(importedSet);
+                        currentCardSetIndex = cardSets.length - 1;
+                    }
+                    
+                    // グループ情報の追加
+                    importedGroups.forEach(group => {
+                        if (!groups.some(g => g.id === group.id)) {
+                            groups.push(group);
+                        }
+                    });
+                    
+                    saveToLocalStorage();
+                    loadCardSet(currentCardSetIndex);
+                    renderCardSetList();
+                    updateGroupSelectors();
+                    alert(`「${importedSet.name}」を${existingIndex >= 0 ? '上書き' : 'インポート'}しました`);
+                    
+                } catch (error) {
+                    alert('ファイルの読み込みに失敗しました: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        }
+
+        // 単語帳セット編集モーダルを表示
+        function showEditCardSetModal() {
+            if (currentCardSetIndex === -1) return;
+            
+            const cardSet = cardSets[currentCardSetIndex];
+            editCardSetName.value = cardSet.name;
+            editCardSetDescription.value = cardSet.description || '';
+            cardSetModal.style.display = 'flex';
+        }
+
+        // 単語帳セットモーダルを非表示
+        function hideCardSetModal() {
+            cardSetModal.style.display = 'none';
+        }
+
+        // 単語帳セットを削除
+        function deleteCardSet(index) {
+            if (index < 0 || index >= cardSets.length) return;
+            
+            cardSets.splice(index, 1);
+            saveToLocalStorage();
+            
+            if (cardSets.length > 0) {
+                loadCardSet(Math.min(index, cardSets.length - 1));
+            } else {
+                currentCardSetIndex = -1;
+                cardSetView.style.display = 'none';
+            }
+            
+            renderCardSetList();
+        }
+
+        // 現在の単語帳セットを削除
+        function deleteCurrentCardSet() {
+            if (currentCardSetIndex === -1) return;
+            deleteCardSet(currentCardSetIndex);
+            hideCardSetModal();
+        }
+
+        // ローカルストレージに保存
+        function saveToLocalStorage() {
+            localStorage.setItem('cardSets', JSON.stringify(cardSets));
+            localStorage.setItem('groups', JSON.stringify(groups));
+        }
+
+        // ローカルストレージから読み込み
+        function loadFromLocalStorage() {
+            const savedData = localStorage.getItem('cardSets');
+            if (savedData) {
+                cardSets = JSON.parse(savedData);
+                renderCardSetList();
+            }
+        }
+
+        // 概要の表示/非表示を切り替え
+        function toggleDescription(e) {
+            e.stopPropagation(); // カードのクリックイベントが発火しないようにする
+            
+            const description = document.getElementById('cardDescription');
+            const button = document.getElementById('toggleDescription');
+            
+            if (description.style.display === 'none') {
+                description.style.display = 'block';
+                button.textContent = '概要を非表示';
+            } else {
+                description.style.display = 'none';
+                button.textContent = '概要を表示';
+            }
+        }
+
+        // グループフィルターを変更
+        function handleGroupFilterChange() {
+            currentGroupFilter = groupFilter.value;
+            renderCardSetList();
+            
+            // フィルターされたグループを展開
+            if (currentGroupFilter) {
+                const groupHeaders = document.querySelectorAll('.group-header');
+                groupHeaders.forEach(header => {
+                    if (header.textContent.includes(currentGroupFilter)) {
+                        const toggle = header.querySelector('.group-toggle');
+                        const content = header.nextElementSibling;
+                        content.classList.add('expanded');
+                        toggle.classList.add('expanded');
+                        toggle.textContent = '×';
+                    }
+                });
+            }
+        }
+
+        // 全ての単語帳をインポート
+        function handleImportAllCardSets(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    const importedSets = importedData.cardSets;
+                    const importedGroups = importedData.groups || [];
+                    
+                    if (!Array.isArray(importedSets)) {
+                        alert('無効な単語帳ファイルです');
+                        return;
+                    }
+                    
+                    // 重複チェックと上書き確認
+                    const duplicates = importedSets.filter(set => 
+                        cardSets.some(existingSet => existingSet.name === set.name)
+                    );
+                    
+                    if (duplicates.length > 0) {
+                        if (!confirm(`${duplicates.length}個の単語帳セットが既に存在します。上書きしますか？`)) {
+                            return;
+                        }
+                    }
+                    
+                    // 既存のセットを上書きまたは新規追加
+                    importedSets.forEach(importedSet => {
+                        const existingIndex = cardSets.findIndex(set => set.name === importedSet.name);
+                        if (existingIndex >= 0) {
+                            cardSets[existingIndex] = importedSet;
+                        } else {
+                            cardSets.push(importedSet);
+                        }
+                    });
+                    
+                    // グループ情報の追加
+                    importedGroups.forEach(group => {
+                        if (!groups.some(g => g.id === group.id)) {
+                            groups.push(group);
+                        }
+                    });
+                    
+                    saveToLocalStorage();
+                    renderCardSetList();
+                    updateGroupSelectors();
+                    alert(`${importedSets.length}個の単語帳セットをインポートしました`);
+                    
+                } catch (error) {
+                    alert('ファイルの読み込みに失敗しました: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        }
+
+        // ページ読み込み時の自動インポート確認
+        window.addEventListener('load', () => {
+            const lastExport = localStorage.getItem('lastExport');
+            if (lastExport) {
+                const lastExportTime = new Date(lastExport);
+                const now = new Date();
+                const diffHours = (now - lastExportTime) / (1000 * 60 * 60);
+                
+                if (diffHours > 24) { // 24時間以上経過している場合
+                    if (confirm('前回のセッションから24時間以上経過しています。単語帳をインポートしますか？')) {
+                        importAllFile.click();
+                    }
+                }
+            }
+        });
+
+        // ページを離れる時の自動エクスポート確認
+        window.addEventListener('beforeunload', (e) => {
+            if (cardSets.length > 0) {
+                const message = 'ページを離れる前に単語帳をエクスポートしますか？';
+                e.returnValue = message;
+                
+                if (confirm(message)) {
+                    const dataStr = JSON.stringify({
+                        cardSets: cardSets,
+                        groups: groups
+                    }, null, 2);
+                    
+                    const blob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const linkElement = document.createElement('a');
+                    linkElement.setAttribute('href', url);
+                    linkElement.setAttribute('download', 'all_flashcards.json');
+                    document.body.appendChild(linkElement);
+                    linkElement.click();
+                    document.body.removeChild(linkElement);
+                    
+                    URL.revokeObjectURL(url);
+                    localStorage.setItem('lastExport', new Date().toISOString());
+                }
+            }
+        });
+
+        // 初期化を実行
+        init();
+    </script>
