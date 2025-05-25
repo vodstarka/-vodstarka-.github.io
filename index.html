@@ -1178,7 +1178,7 @@
             editCardSetBtn.addEventListener('click', showEditCardSetModal);
             deleteCardSetBtn.addEventListener('click', deleteCurrentCardSet);
             cancelCardSetModalBtn.addEventListener('click', hideCardSetModal);
-            saveCardSetBtn.addEventListener('click', saveCardSet);
+            saveCardSetBtn.addEventListener('click', saveCard);
             toggleDescriptionBtn.addEventListener('click', toggleDescription);
             exportAllBtn.addEventListener('click', exportAllCardSets);
             importAllBtn.addEventListener('click', () => importAllFile.click());
@@ -1620,8 +1620,21 @@
                 groups: groups
             }, null, 2);
             
+            // 日付と時間を含むファイル名を生成する関数
+            function generateExportFileName(prefix = 'all_flashcards') {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const ampm = now.getHours() < 12 ? 'AM' : 'PM';
+                
+                return `${prefix}_${year}.${month}.${day}.${ampm}${hours}${minutes}.json`;
+            }
+
             // ファイル名を指定して保存
-            const exportName = `${cardSet.name}.json`;
+            const exportName = generateExportFileName(cardSet.name);
             const blob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             
@@ -1781,7 +1794,7 @@
             
             const linkElement = document.createElement('a');
             linkElement.setAttribute('href', url);
-            linkElement.setAttribute('download', 'all_flashcards.json');
+            linkElement.setAttribute('download', generateExportFileName());
             linkElement.click();
             
             URL.revokeObjectURL(url);
@@ -1884,7 +1897,7 @@
                     
                     const linkElement = document.createElement('a');
                     linkElement.setAttribute('href', url);
-                    linkElement.setAttribute('download', 'all_flashcards.json');
+                    linkElement.setAttribute('download', generateExportFileName());
                     linkElement.click();
                     
                     URL.revokeObjectURL(url);
