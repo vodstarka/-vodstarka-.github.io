@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>マルチメディア単語帳アプリ</title>
+    <title>AIで作った単語帳アプリ</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -403,7 +403,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>マルチメディア単語帳アプリ</h1>
+        <h1>AIで作った単語帳アプリ</h1>
         
         <div class="controls" style="margin-bottom: 20px;">
             <button id="exportAll" class="secondary">全ての単語帳をエクスポート</button>
@@ -1178,7 +1178,7 @@
             editCardSetBtn.addEventListener('click', showEditCardSetModal);
             deleteCardSetBtn.addEventListener('click', deleteCurrentCardSet);
             cancelCardSetModalBtn.addEventListener('click', hideCardSetModal);
-            saveCardSetBtn.addEventListener('click', saveCard);
+            saveCardSetBtn.addEventListener('click', saveCardSet);
             toggleDescriptionBtn.addEventListener('click', toggleDescription);
             exportAllBtn.addEventListener('click', exportAllCardSets);
             importAllBtn.addEventListener('click', () => importAllFile.click());
@@ -1620,28 +1620,37 @@
                 groups: groups
             }, null, 2);
             
-            // 日付と時間を含むファイル名を生成する関数
-            function generateExportFileName(prefix = 'all_flashcards') {
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                const ampm = now.getHours() < 12 ? 'AM' : 'PM';
-                
-                return `${prefix}_${year}.${month}.${day}.${ampm}${hours}${minutes}.json`;
-            }
-
             // ファイル名を指定して保存
-            const exportName = generateExportFileName(cardSet.name);
+            const exportName = `${cardSet.name}.json`;
             const blob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             
             const linkElement = document.createElement('a');
             linkElement.setAttribute('href', url);
             linkElement.setAttribute('download', exportName);
+            document.body.appendChild(linkElement);
             linkElement.click();
+            document.body.removeChild(linkElement);
+            
+            URL.revokeObjectURL(url);
+        }
+
+        // 全ての単語帳をエクスポート
+        function exportAllCardSets() {
+            const dataStr = JSON.stringify({
+                cardSets: cardSets,
+                groups: groups
+            }, null, 2);
+            
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', url);
+            linkElement.setAttribute('download', 'all_flashcards.json');
+            document.body.appendChild(linkElement);
+            linkElement.click();
+            document.body.removeChild(linkElement);
             
             URL.revokeObjectURL(url);
         }
@@ -1712,22 +1721,6 @@
             cardSetModal.style.display = 'none';
         }
 
-        // 単語帳セットを保存
-        function saveCardSet() {
-            const name = editCardSetName.value.trim();
-            if (!name) {
-                alert('セット名を入力してください');
-                return;
-            }
-            
-            cardSets[currentCardSetIndex].name = name;
-            cardSets[currentCardSetIndex].description = editCardSetDescription.value.trim() || undefined;
-            saveToLocalStorage();
-            hideCardSetModal();
-            currentCardSetName.textContent = name;
-            renderCardSetList();
-        }
-
         // 単語帳セットを削除
         function deleteCardSet(index) {
             if (index < 0 || index >= cardSets.length) return;
@@ -1780,68 +1773,6 @@
                 description.style.display = 'none';
                 button.textContent = '概要を表示';
             }
-        }
-
-        // 全ての単語帳をエクスポート
-        function exportAllCardSets() {
-            const dataStr = JSON.stringify({
-                cardSets: cardSets,
-                groups: groups
-            }, null, 2);
-            
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', url);
-            linkElement.setAttribute('download', generateExportFileName());
-            linkElement.click();
-            
-            URL.revokeObjectURL(url);
-        }
-
-        // 全ての単語帳をインポート
-        function handleImportAllCardSets(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const importedData = JSON.parse(event.target.result);
-                    const importedSets = importedData.cardSets;
-                    const importedGroups = importedData.groups || [];
-                    
-                    if (!Array.isArray(importedSets)) {
-                        alert('無効な単語帳ファイルです');
-                        return;
-                    }
-                    
-                    // 各セットの検証
-                    for (const set of importedSets) {
-                        if (!set.name || !Array.isArray(set.cards)) {
-                            alert('無効な単語帳ファイルです');
-                            return;
-                        }
-                    }
-                    
-                    if (confirm('現在の単語帳を全て上書きしますか？この操作は元に戻せません。')) {
-                        cardSets = importedSets;
-                        groups = importedGroups;
-                        saveToLocalStorage();
-                        currentCardSetIndex = -1;
-                        cardSetView.style.display = 'none';
-                        renderCardSetList();
-                        updateGroupSelectors();
-                        alert('全ての単語帳をインポートしました');
-                    }
-                    
-                } catch (error) {
-                    alert('ファイルの読み込みに失敗しました: ' + error.message);
-                }
-            };
-            reader.readAsText(file);
-            e.target.value = '';
         }
 
         // グループフィルターを変更
@@ -1897,8 +1828,10 @@
                     
                     const linkElement = document.createElement('a');
                     linkElement.setAttribute('href', url);
-                    linkElement.setAttribute('download', generateExportFileName());
+                    linkElement.setAttribute('download', 'all_flashcards.json');
+                    document.body.appendChild(linkElement);
                     linkElement.click();
+                    document.body.removeChild(linkElement);
                     
                     URL.revokeObjectURL(url);
                     localStorage.setItem('lastExport', new Date().toISOString());
